@@ -1,101 +1,202 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect } from "react";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+const ToDoPage = () => {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [priority, setPriority] = useState("Medium");
+  const [category, setCategory] = useState("Work");
+  const [mainTask, setMainTask] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Load tasks from localStorage on component mount
+  useEffect(() => {
+    const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    setMainTask(savedTasks);
+  }, []);
+
+  // Save tasks to localStorage whenever mainTask changes
+  useEffect(() => {
+    localStorage.setItem("tasks", JSON.stringify(mainTask));
+  }, [mainTask]);
+
+  const submitHandler = (e) => {
+    e.preventDefault();
+    const newTask = { title, description, dueDate, priority, category };
+    setMainTask([...mainTask, newTask]);
+    setTitle("");
+    setDescription("");
+    setDueDate("");
+    setPriority("Medium");
+    setCategory("Work");
+
+    // Task notification
+    if ("Notification" in window) {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          new Notification("New Task Added!", {
+            body: `Task: ${title} added!`,
+          });
+        }
+      });
+    }
+  };
+
+  const deleteHandler = (i) => {
+    const copyTask = [...mainTask];
+    copyTask.splice(i, 1);
+    setMainTask(copyTask);
+  };
+
+  const toggleCompleteTask = (i) => {
+    const taskToComplete = mainTask[i];
+    setCompletedTasks([...completedTasks, taskToComplete]);
+    deleteHandler(i);
+  };
+
+  const editTaskHandler = (i) => {
+    const taskToEdit = mainTask[i];
+    setTitle(taskToEdit.title);
+    setDescription(taskToEdit.description);
+    setDueDate(taskToEdit.dueDate);
+    setPriority(taskToEdit.priority);
+    setCategory(taskToEdit.category);
+    deleteHandler(i);
+  };
+
+  const filteredTasks = mainTask.filter((task) =>
+    task.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const renderTasks = filteredTasks.length ? (
+    filteredTasks.map((task, i) => (
+      <li
+        key={i}
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-4 rounded-lg shadow-lg mb-4 transition-all w-full"
+      >
+        <div className="flex flex-col w-full sm:w-3/4 mb-4 sm:mb-0">
+          <h5 className="text-lg sm:text-2xl font-semibold text-gray-800">
+            {task.title}
+          </h5>
+          <p className="text-sm sm:text-lg text-gray-600">{task.description}</p>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Due: {task.dueDate} | Priority: {task.priority} | Category:{" "}
+            {task.category}
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <div className="flex flex-col sm:flex-row items-start sm:items-center">
+          <button
+            onClick={() => toggleCompleteTask(i)}
+            className="bg-green-600 text-white px-3 py-2 rounded mb-2 sm:mb-0 sm:mr-2 w-full sm:w-auto"
+          >
+            Complete
+          </button>
+          <button
+            onClick={() => editTaskHandler(i)}
+            className="bg-blue-600 text-white px-3 py-2 rounded mb-2 sm:mb-0 sm:mr-2 w-full sm:w-auto"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => deleteHandler(i)}
+            className="bg-red-600 text-white px-3 py-2 rounded w-full sm:w-auto"
+          >
+            Delete
+          </button>
+        </div>
+      </li>
+    ))
+  ) : (
+    <h2 className="text-center text-xl text-gray-600">No Tasks Found</h2>
+  );
+
+  return (
+    <div
+      className={
+        isDarkMode
+          ? "bg-gray-900 text-white min-h-screen"
+          : "bg-gray-100 text-black min-h-screen"
+      }
+    >
+      <h1 className="bg-black text-white p-4 text-2xl sm:text-3xl font-bold text-center">
+        To-Do List
+      </h1>
+
+      {/* Dark Mode Toggle */}
+      <div className="flex justify-center my-4">
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="bg-gray-800 text-white px-4 py-2 rounded"
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          {isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        </button>
+      </div>
+
+      <form
+        onSubmit={submitHandler}
+        className="flex flex-col items-center sm:w-3/4 lg:w-1/2 mx-auto"
+      >
+        <input
+          type="text"
+          className="text-base sm:text-xl border-2 border-gray-800 m-2 px-4 py-2 rounded-lg w-full text-black"
+          placeholder="Task Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+        <input
+          type="text"
+          className="text-base sm:text-xl border-2 border-gray-800 m-2 px-4 py-2 rounded-lg w-full text-black"
+          placeholder="Description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+        />
+        <input
+          type="date"
+          className="text-base sm:text-xl border-2 border-gray-800 m-2 px-4 py-2 rounded-lg w-full text-black"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+        />
+        <select
+          className="text-base sm:text-xl border-2 border-gray-800 m-2 px-4 py-2 rounded-lg w-full text-black"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <select
+          className="text-base sm:text-xl border-2 border-gray-800 m-2 px-4 py-2 rounded-lg w-full text-black"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <option value="Work">Work</option>
+          <option value="Personal">Personal</option>
+          <option value="Urgent">Urgent</option>
+        </select>
+        <button className="bg-black text-white px-4 py-2 text-lg sm:text-2xl font-bold rounded-lg my-4 w-full">
+          Add Task
+        </button>
+      </form>
+
+      <input
+        type="text"
+        className="text-base sm:text-xl border-2 border-gray-800 m-4 px-4 py-2 rounded-lg w-3/4 sm:w-1/2 mx-auto block text-black"
+        placeholder="Search tasks..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
+      <div className="p-8 w-full sm:w-3/4 lg:w-1/2 mx-auto">
+        <ul>{renderTasks}</ul>
+      </div>
     </div>
   );
-}
+};
+
+export default ToDoPage;
